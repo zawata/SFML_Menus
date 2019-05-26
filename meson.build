@@ -2,7 +2,7 @@ project('main', ['c', 'cpp'],
     meson_version: '>=0.50.0')
 
 sources = [
-    'main.cpp',
+    'test_main.cpp',
 ]
 
 dependencies = [
