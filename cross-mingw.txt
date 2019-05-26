@@ -1,0 +1,7 @@
+[binaries]
+c =         '/usr/bin/x86_64-w64-mingw32-gcc-win32'
+cpp =       '/usr/bin/x86_64-w64-mingw32-g++-win32'
+ar =        '/usr/bin/x86_64-w64-mingw32-gcc-ar-win32'
+strip =     '/usr/bin/x86_64-w64-mingw32-gcc-strip-win32'
+pkgconfig = '/usr/bin/x86_64-w64-mingw32-pkg-config'
+exe_wrapper = 'wine' # A command used to run generated executables.
