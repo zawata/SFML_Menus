@@ -1,12 +1,16 @@
 #pragma once
 
-#include "menubar.hpp"
-
 #include <SFML/Graphics.hpp>
+
+#ifdef _IS_WINDOWS
+#  include <functional>
+#endif
 
 typedef std::function<void(const sf::Event &)>              event_callback_t;
 typedef std::function<void(sf::RenderWindow &)>             draw_callback_t;
 typedef std::function<void(const int, const std::string &)> menu_callback_t;
+
+class NUI_MenuBar;
 
 struct NUI_Window {
     virtual void set_title(const std::string &s) = 0;
