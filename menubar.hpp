@@ -59,24 +59,14 @@ struct NUI_TextMenuItem : public NUI_MenuItem {
 // };
 
 #define SubMenuItem(...) new NUI_SubMenuItem(__VA_ARGS__)
-struct NUI_SubMenuItem : public NUI_TextMenuItem {
+struct NUI_SubMenuItem : public NUI_TextMenuItem, public std::list<NUI_MenuItem *> {
     NUI_SubMenuItem(const std::string &label, std::initializer_list<NUI_MenuItem *> items) :
-    NUI_TextMenuItem(label) {
-        std::copy(items.begin(), items.end(), back_inserter(this->items));
-    }
+    NUI_TextMenuItem(label),
+    std::list<NUI_MenuItem *>(items) {}
 
-    auto begin() {
-        return items.begin();
-    }
-
-    auto end() {
-        return items.end();
-    }
+    //TODO destructor to delete list of pointers
 
     virtual bool is_SubMenuItem() override { return true; }
-
-private:
-    std::list<NUI_MenuItem *> items;
 };
 
 #define ToggleMenuItem(...) new NUI_ToggleMenuItem(__VA_ARGS__)
@@ -88,8 +78,9 @@ struct NUI_ToggleMenuItem : public NUI_TextMenuItem {
 
     NUI_ToggleMenuItem(const std::string &label, std::function<void(NUI_ToggleMenuItem &, bool, void *)> cb, void *us_data = nullptr, bool initial_state = false) :
     NUI_TextMenuItem(label),
-    callback_mode(true),
     cb(cb),
+    callback_mode(true),
+    default_state(initial_state),
     us_data(us_data) {}
 
     void operator()(bool new_state) {
@@ -101,11 +92,16 @@ struct NUI_ToggleMenuItem : public NUI_TextMenuItem {
         }
     }
 
+    bool get_default_state() {
+        return default_state;
+    }
+
     virtual bool is_ToggleMenuItem() override { return true; }
 private:
     std::function<void(NUI_ToggleMenuItem &, bool, void *us_Data)> cb;
-    bool callback_mode;
-    bool *state_toggle;
+    bool callback_mode,
+         *state_toggle,
+         default_state;
     void *us_data;
 };
 
@@ -129,4 +125,6 @@ private:
 struct NUI_MenuBar : public std::list<NUI_SubMenuItem *> {
     NUI_MenuBar(std::initializer_list<NUI_SubMenuItem *> items) :
     std::list<NUI_SubMenuItem *>(items) {}
+
+    //TODO destructor to delete list of pointers
 };

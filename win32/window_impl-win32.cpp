@@ -19,7 +19,7 @@ static const std::wstring class_name = L"SFML_WRAPPER";
 /**
  * Static Functions
  **/
-HWND NUI_Window_win32::InitInstance(std::wstring window_title) {
+HWND NUI_Window_win32::initInstance(std::wstring window_title) {
     HINSTANCE hInstance = GetModuleHandle(NULL);
 
     HWND hWnd = CreateWindowW(
@@ -37,13 +37,10 @@ HWND NUI_Window_win32::InitInstance(std::wstring window_title) {
 
    if (!hWnd) return NULL;
 
-   ShowWindow(hWnd, SW_SHOW);
-   UpdateWindow(hWnd);
-
    return hWnd;
 }
 
-HWND NUI_Window_win32::InitSFML(sf::RenderWindow &sfml_window, HWND parent) {
+HWND NUI_Window_win32::initSFML(sf::RenderWindow &sfml_window, HWND parent) {
     RECT parent_rect;
     GetWindowRect(parent, &parent_rect);
 
@@ -70,10 +67,10 @@ HWND NUI_Window_win32::InitSFML(sf::RenderWindow &sfml_window, HWND parent) {
     return view;
 }
 
-ATOM NUI_Window_win32::MyRegisterClass() {
+ATOM NUI_Window_win32::registerClass() {
     HINSTANCE hInstance = GetModuleHandle(NULL);
 
-    WNDCLASSEXW wcex;
+    WNDCLASSEXW wcex = { 0 };
     wcex.cbSize = sizeof(WNDCLASSEX);
 
     wcex.style          = CS_HREDRAW | CS_VREDRAW;
@@ -81,18 +78,16 @@ ATOM NUI_Window_win32::MyRegisterClass() {
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    //wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSPROJECT1));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    //wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
-    wcex.lpszClassName  = L"SFML_WRAPPER";
-    //wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.hIcon          = NULL;
+    wcex.hCursor        = 0;
+    wcex.hbrBackground  = 0;
+    wcex.lpszMenuName   = NULL;
+    wcex.lpszClassName  = class_name.c_str();
 
     return RegisterClassExW(&wcex);
 }
 
 LRESULT CALLBACK NUI_Window_win32::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-
     return ((NUI_Window_win32 *)(void *)GetWindowLongPtrA(hWnd, GWLP_USERDATA))->on_win32_event(hWnd, message, wParam, lParam);
 }
 
@@ -100,28 +95,32 @@ LRESULT CALLBACK NUI_Window_win32::wndProc(HWND hWnd, UINT message, WPARAM wPara
  * NUI_Window_win32 Implementation
  **/
 NUI_Window_win32::NUI_Window_win32(const std::string &s) {
-    HINSTANCE hInstance = GetModuleHandle(NULL);
 
-    MyRegisterClass();
+    registerClass();
 
-    main_hwnd = InitInstance(s_to_w(s));
-    sfml_hwnd = InitSFML(this->sfml_window, main_hwnd);
+    main_hwnd = initInstance(s_to_w(s));
+    sfml_hwnd = initSFML(this->sfml_window, main_hwnd);
 
     SetWindowLongPtrA(main_hwnd, GWLP_USERDATA, (LONG_PTR)(void *)this);
+
+	ShowWindow(main_hwnd, SW_SHOW);
+	UpdateWindow(main_hwnd);
 
     SetFocus(sfml_hwnd);
 }
 
 NUI_Window_win32::NUI_Window_win32(const std::string &s, int w, int h) {
-    HINSTANCE hInstance = GetModuleHandle(NULL);
+    registerClass();
 
-    MyRegisterClass();
+    main_hwnd = initInstance(s_to_w(s));
+    sfml_hwnd = initSFML(this->sfml_window, main_hwnd);
 
-    main_hwnd = InitInstance(s_to_w(s));
-    sfml_hwnd = InitSFML(this->sfml_window, main_hwnd);
+	ShowWindow(main_hwnd, SW_SHOW);
+	UpdateWindow(main_hwnd);
+
+	this->set_dimensions(w, h);
 
     SetFocus(sfml_hwnd);
-    this->set_dimensions(w, h);
 }
 
 void NUI_Window_win32::set_title(const std::string &s) {
@@ -148,9 +147,20 @@ bool NUI_Window_win32::add_menubar(NUI_MenuBar *menu_layout) {
             AppendMenu(win_menu, MF_POPUP | MF_STRING, (UINT_PTR)(void *)sub_menu, label.c_str());
             for(auto i : *(NUI_SubMenuItem *)nui_m) d.push_back({sub_menu, i});
         } else if(nui_m->is_ToggleMenuItem()) {
+            int item_pos = GetMenuItemCount(win_menu);
+            int default_state = (((NUI_ToggleMenuItem *)nui_m)->get_default_state()) ? MF_CHECKED : MF_UNCHECKED;
+            AppendMenu(win_menu, MF_STRING | default_state, nui_m->get_id(), label.c_str());
 
+            callback_map.insert({nui_m->get_id(), std::make_pair(nui_m, [=](NUI_MenuItem *nui_m) {
+                bool current_state = GetMenuState(win_menu, item_pos, MF_BYPOSITION) & MF_CHECKED;
+                (*(NUI_ToggleMenuItem *)nui_m)(!current_state);
+                CheckMenuItem(win_menu, item_pos, MF_BYPOSITION | ((!current_state) ? MF_CHECKED : MF_UNCHECKED));
+            })});
         } else if(nui_m->is_CallbackMenuItem()) {
-
+            AppendMenu(win_menu, MF_STRING, nui_m->get_id(), label.c_str());
+            callback_map.insert({nui_m->get_id(), std::make_pair(nui_m, [](NUI_MenuItem *nui_m){
+                (*(NUI_CallbackMenuItem *)nui_m)();
+            })});
         }
     }
 
@@ -197,6 +207,10 @@ void NUI_Window_win32::set_on_menu_callback(menu_callback_t c) {
     this->on_menu_callback = c;
 }
 
+void NUI_Window_win32::message_box(std::string &title, std::string &message) {
+    MessageBox(main_hwnd, message.c_str(), title.c_str(), MB_OK);   
+}
+
 int NUI_Window_win32::run_loop() {
     MSG msg;
     do {
@@ -206,17 +220,11 @@ int NUI_Window_win32::run_loop() {
         } else {
             sf::Event Event;
             while(sfml_window.pollEvent(Event)) {
-                //TODO: onSFMLEvent();
-                if(Event.type == sf::Event::KeyPressed) {
-                    if(Event.key.code == sf::Keyboard::Key::Enter) {
-                        return false;
-                    }
-                }
+                this->on_event_callback(Event);
             }
 
-            //TODO: onDraw();
-
             sfml_window.clear();
+            this->on_draw_callback();
             sfml_window.display();
         }
     } while (msg.message != WM_QUIT);
@@ -228,7 +236,12 @@ LRESULT NUI_Window_win32::on_win32_event(HWND hWnd, UINT message, WPARAM wParam,
     switch (message) {
     case WM_COMMAND: {
         int wmId = LOWORD(wParam);
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        try {
+            auto menu_comp = callback_map.at(wmId);
+            menu_comp.second(menu_comp.first);
+        } catch(std::out_of_range &) {
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
     }   break;
     case WM_PAINT: {
         PAINTSTRUCT ps;

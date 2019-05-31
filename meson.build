@@ -8,12 +8,7 @@ sources = [
     'test_main.cpp',
 ]
 
-dependencies = [
-    dependency('sfml-all')
-]
-
-args = [
-]
+dependencies = []
 
 system = host_machine.system()
 if system == 'windows'
@@ -22,18 +17,19 @@ if system == 'windows'
         'win32/window_impl-win32.cpp'
     ]
 
-    args += [
-        '-D_IS_WINDOWS'
-    ]
+    add_project_arguments(
+        '-D_IS_WINDOWS',
+        language: ['c', 'cpp'])
+
 elif system == 'darwin'
     sources += [
         'macos/window-cocoa.cpp',
         'macos/window_impl-cocoa.cpp'
     ]
 
-    args += [
-        '-D_IS_MACOS'
-    ]
+    add_project_arguments(
+        '-D_IS_MACOS',
+        language: ['c', 'cpp'])
 elif system == 'linux'
     sources += [
         'gtk/window-gtk.cpp',
@@ -45,14 +41,17 @@ elif system == 'linux'
         dependency('gtkmm-3.0')
     ]
 
-    args += [
-        '-D_IS_LINUX'
-    ]
+    add_project_arguments(
+        '-D_IS_LINUX',
+        language: ['c', 'cpp'])
 else
     # if you get here, you'll get linker errors
 endif
 
+dependencies += [
+    dependency('sfml-all')
+]
+
 executable('main', sources,
     gui_app: true,
-    dependencies: dependencies,
-    cpp_args: args)
+    dependencies: dependencies)

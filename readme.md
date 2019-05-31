@@ -17,6 +17,8 @@ Mostly done now because I like the prospect of libui but the API is so volatile 
  - gtk
    - Windows
      - ~~SFML~~
+     - ~~MessageBoxes~~
+     - ~~File Dialogs~~
    - Menus
      - Items
         - SubMenus
@@ -28,7 +30,16 @@ Mostly done now because I like the prospect of libui but the API is so volatile 
  - win32
    - Windows
      - SFML
-   - ~~Menus~~
+     - MessageBoxes
+     - ~~File Dialogs~~
+   - Menus
+      - Items
+        - SubMenus
+        - Text Items
+        - Toggle Items
+        - Callback Items
+        - ~~Separators~~
+      - ~~enable/disable~~
  - ~~cocoa~~
 
 ### Example:
